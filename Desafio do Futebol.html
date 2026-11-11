@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Desafio do Futebol</title>
+<style>
+:root{--bg:#0f5132;--stripe:#126239;--card:#fffdf5;--ink:#10281c;--muted:#4b6355;--line:#c9d8cc;--accent:#f5c518;--ok:#1c8a4a;--bad:#c62828;--okbg:#d9f2e2;--badbg:#fbdcdc;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#082e1c;--stripe:#0a3822;--card:#14261c;--ink:#f1f5ee;--muted:#a5b9ac;--line:#2d4a38;--okbg:#14412a;--badbg:#4a1d1d}}
+:root[data-theme="dark"]{--bg:#082e1c;--stripe:#0a3822;--card:#14261c;--ink:#f1f5ee;--muted:#a5b9ac;--line:#2d4a38;--okbg:#14412a;--badbg:#4a1d1d}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:"Trebuchet MS",Verdana,sans-serif;color:var(--ink);background:repeating-linear-gradient(90deg,var(--bg) 0 60px,var(--stripe) 60px 120px);display:flex;align-items:center;justify-content:center;padding:16px}
+main{width:100%;max-width:520px;background:var(--card);border-radius:20px;padding:28px 24px;border:3px solid var(--accent)}
+h1{font-family:Impact,"Arial Black",sans-serif;font-size:2.4rem;margin:0 0 8px;letter-spacing:.5px;line-height:1.05}
+h2{font-size:1.25rem;line-height:1.35;margin:0 0 18px}
+p{line-height:1.5;color:var(--muted);margin:0 0 18px}
+.ball{font-size:3.5rem;line-height:1;margin-bottom:10px}
+input{width:100%;font:inherit;padding:12px 14px;border:2px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);margin-bottom:14px}
+button{font:inherit;cursor:pointer;border:2px solid var(--ink);border-radius:12px;padding:13px 16px;background:var(--card);color:var(--ink);width:100%;text-align:left;margin-bottom:10px}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button.go{background:var(--accent);color:#10281c;font-weight:bold;text-align:center;font-size:1.1rem;border-color:#10281c}
+button.opt:hover:not(:disabled){background:var(--line)}
+button.opt b{display:inline-block;width:1.8em}
+button.ok{background:var(--okbg);border-color:var(--ok)}
+button.bad{background:var(--badbg);border-color:var(--bad)}
+button:disabled{cursor:default}
+.top{display:flex;justify-content:space-between;font-weight:bold;margin-bottom:10px}
+.bar{height:8px;background:var(--line);border-radius:4px;margin-bottom:18px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ok);transition:width .3s}
+.msg{padding:12px 14px;border-radius:10px;margin:6px 0 14px;line-height:1.45}
+.msg.ok{background:var(--okbg)}.msg.bad{background:var(--badbg)}
+.big{font-family:Impact,"Arial Black",sans-serif;font-size:3.2rem;margin:0}
+.hidden{display:none}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+</head>
+<body>
+<main>
+<section id="inicio">
+<div class="ball" aria-hidden="true">⚽</div>
+<h1>Desafio do Futebol</h1>
+<p>Responda 5 perguntas. Cada acerto vale 10 pontos. Faça 30 pontos ou mais para vencer.</p>
+<label for="nome" style="display:block;margin-bottom:6px">Qual é o seu nome?</label>
+<input id="nome" maxlength="30" autocomplete="off">
+<button class="go" id="iniciar">Iniciar</button>
+</section>
+
+<section id="jogo" class="hidden">
+<div class="top"><span id="num"></span><span id="pts"></span></div>
+<div class="bar"><i id="prog"></i></div>
+<h2 id="pergunta"></h2>
+<div id="opcoes"></div>
+<div id="feedback" class="msg hidden" role="status"></div>
+<button class="go hidden" id="prox"></button>
+</section>
+
+<section id="fim" class="hidden">
+<div class="ball" id="trofeu" aria-hidden="true"></div>
+<h1 id="titulo"></h1>
+<p id="resumo"></p>
+<p class="big" id="final"></p>
+<br>
+<button class="go" id="again">Jogar de novo</button>
+</section>
+</main>
+
+<script>
+var perguntas = [
+ {q:"Quantos jogadores de cada time ficam em campo, contando o goleiro?",o:["9","11","13"],c:1,e:"Cada time joga com 11 jogadores."},
+ {q:"Quantos minutos dura uma partida no tempo normal?",o:["60","90","120"],c:1,e:"São dois tempos de 45 minutos."},
+ {q:"Qual país tem mais títulos de Copa do Mundo masculina?",o:["Brasil","Alemanha","Argentina"],c:0,e:"O Brasil tem 5 títulos."},
+ {q:"Qual jogador pode usar as mãos dentro da sua área?",o:["Zagueiro","Goleiro","Atacante"],c:1,e:"Só o goleiro pode pegar a bola com as mãos dentro da própria área."},
+ {q:"Qual cartão significa que o jogador foi expulso?",o:["Amarelo","Vermelho","Azul"],c:1,e:"O cartão vermelho expulsa o jogador."}
+];
+var L = ["A","B","C"];
+var nomeJogador = "", pontos = 0, atual = 0;
+function $(id){return document.getElementById(id)}
+function mostrar(id){["inicio","jogo","fim"].forEach(function(s){$(s).classList.toggle("hidden", s!==id)})}
+
+function iniciar(){
+  nomeJogador = $("nome").value.trim() || "Jogador";
+  pontos = 0; atual = 0;
+  mostrar("jogo"); carregar();
+}
+function carregar(){
+  var p = perguntas[atual];
+  $("num").textContent = "Pergunta " + (atual+1) + " de " + perguntas.length;
+  $("pts").textContent = "Pontos: " + pontos;
+  $("prog").style.width = (atual/perguntas.length*100) + "%";
+  $("pergunta").textContent = p.q;
+  $("feedback").className = "msg hidden";
+  $("prox").classList.add("hidden");
+  var box = $("opcoes"); box.innerHTML = "";
+  p.o.forEach(function(t,i){
+    var b = document.createElement("button");
+    b.className = "opt";
+    b.innerHTML = "<b>" + L[i] + ")</b> ";
+    b.appendChild(document.createTextNode(t));
+    b.onclick = function(){responder(i)};
+    box.appendChild(b);
+  });
+}
+function responder(i){
+  var p = perguntas[atual];
+  var bs = $("opcoes").children;
+  for (var k=0;k<bs.length;k++) bs[k].disabled = true;
+  var f = $("feedback");
+  if (i === p.c) {
+    pontos = pontos + 10;
+    bs[i].classList.add("ok");
+    f.textContent = "Resposta correta! " + p.e;
+    f.className = "msg ok";
+  } else {
+    bs[i].classList.add("bad");
+    bs[p.c].classList.add("ok");
+    f.textContent = "Resposta errada! A correta era " + L[p.c] + ". " + p.e;
+    f.className = "msg bad";
+  }
+  $("pts").textContent = "Pontos: " + pontos;
+  $("prox").textContent = atual === perguntas.length-1 ? "Ver resultado" : "Próxima pergunta";
+  $("prox").classList.remove("hidden");
+  $("prox").focus();
+}
+function proxima(){
+  atual++;
+  if (atual < perguntas.length) carregar(); else terminar();
+}
+function terminar(){
+  mostrar("fim");
+  $("final").textContent = pontos + " pontos";
+  $("resumo").textContent = nomeJogador + ", você acertou " + (pontos/10) + " de " + perguntas.length + " perguntas.";
+  if (pontos >= 30) {
+    $("trofeu").textContent = "🏆"; $("titulo").textContent = "Parabéns, você venceu!";
+  } else {
+    $("trofeu").textContent = "🟥"; $("titulo").textContent = "Você perdeu. Tente de novo!";
+  }
+}
+$("iniciar").onclick = iniciar;
+$("nome").onkeydown = function(e){ if (e.key === "Enter") iniciar(); };
+$("prox").onclick = proxima;
+$("again").onclick = function(){ mostrar("inicio"); };
+</script>
+</body>
+</html>
